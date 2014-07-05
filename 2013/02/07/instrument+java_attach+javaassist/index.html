@@ -4,14 +4,15 @@
 <head>
   <meta charset="UTF-8">
   
-    <title>谭锋的博客</title>
+    <title>通过Instrument动态修改jvm中的Class | 谭锋的博客</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
     
     <meta name="author" content="tanfeng">
     
-    <meta name="description" content="title: 通过Instrument动态修改jvm中的Classdate: 2013-02-07 22:42:19tags: instrument, attachcategories: java核心
-instrument
-instrument是jdk 1.5之后提供的一个功能，它通过代理的方式运行">
+    <meta name="description" content="instrument
+instrument是jdk 1.5之后提供的一个功能，它通过代理的方式运行在 JVM 上的程序的服务。作为代理的类必须首先打成jar包。在jdk1.6中支持两种方式来启动代理:
+
+在程序启动的时候添加jvm启动参数-javaagent:jarpath=options参数指定代">
     
     
     
@@ -68,15 +69,15 @@ instrument是jdk 1.5之后提供的一个功能，它通过代理的方式运行
 		<header class="article-info clearfix">
   <h1 itemprop="name">
     
-      <a href="/2014/07/05/instrument+java_attach+javaassist/" title="" itemprop="url"></a>
+      <a href="/2013/02/07/instrument+java_attach+javaassist/" title="通过Instrument动态修改jvm中的Class" itemprop="url">通过Instrument动态修改jvm中的Class</a>
   </h1>
   <p class="article-author">By
     
       <a href="http://jianchi.github.io" title="tanfeng">tanfeng</a>
     </p>
   <p class="article-time">
-    <time datetime="2014-07-05T15:54:23.000Z" itemprop="datePublished">Jul 5 2014</time>
-    Updated:<time datetime="2014-07-05T15:54:23.000Z" itemprop="dateModified">Jul 5 2014</time>
+    <time datetime="2013-02-07T14:42:19.000Z" itemprop="datePublished">Feb 7 2013</time>
+    Updated:<time datetime="2014-07-05T15:59:40.000Z" itemprop="dateModified">Jul 5 2014</time>
     
   </p>
 </header>
@@ -88,8 +89,7 @@ instrument是jdk 1.5之后提供的一个功能，它通过代理的方式运行
 		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#instrument"><span class="toc-number">1.</span> <span class="toc-text">instrument</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Attach_API"><span class="toc-number">2.</span> <span class="toc-text">Attach API</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#修改字节码"><span class="toc-number">3.</span> <span class="toc-text">修改字节码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#动态jvm中的class"><span class="toc-number">4.</span> <span class="toc-text">动态jvm中的class</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-number">5.</span> <span class="toc-text">总结</span></a></li></ol>
 		</div>
 		
-		<p>title: 通过Instrument动态修改jvm中的Class<br>date: 2013-02-07 22:42:19<br>tags: instrument, attach<br>categories: java核心</p>
-<h2 id="instrument">instrument</h2>
+		<h2 id="instrument">instrument</h2>
 <p>instrument是jdk 1.5之后提供的一个功能，它通过代理的方式运行在 JVM 上的程序的服务。作为代理的类必须首先打成jar包。在jdk1.6中支持两种方式来启动代理:</p>
 <ol>
 <li>在程序启动的时候添加jvm启动参数-javaagent:jarpath=options参数指定代理的jar来启动代理.<br>这种情况下代理入口类通过在META-INF/MENIFEST.MF清单文件中的Premain-Class属性指定，代理入口类必须实现以下两个函数之一：</li>
@@ -352,12 +352,22 @@ instrument是jdk 1.5之后提供的一个功能，它通过代理的方式运行
 	</div>
 		<footer class="article-footer clearfix">
 
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/instrument, attach/">instrument, attach</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/java核心/">java核心</a>
+</div>
 
 
 
 <div class="article-share" id="share">
 
-  <div data-url="http://jianchi.github.io/2014/07/05/instrument+java_attach+javaassist/" data-title="谭锋的博客" data-tsina="null" class="share clearfix">
+  <div data-url="http://jianchi.github.io/2013/02/07/instrument+java_attach+javaassist/" data-title="通过Instrument动态修改jvm中的Class | 谭锋的博客" data-tsina="null" class="share clearfix">
   </div>
 
 </div>
@@ -383,14 +393,39 @@ instrument是jdk 1.5之后提供的一个功能，它通过代理的方式运行
 <aside class="clearfix">
 
   
+<div class="categorieslist">
+	<p class="asidetitle">Categories</p>
+		<ul>
+		
+			<li><a href="/categories/java核心/" title="java核心">java核心<sup>1</sup></a></li>
+		
+		</ul>
+</div>
+
 
   
+<div class="tagslist">
+	<p class="asidetitle">Tags</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/instrument, attach/" title="instrument, attach">instrument, attach<sup>1</sup></a></li>
+		
+		</ul>
+</div>
+
 
   <div class="rsspart">
 	<a href="null" target="_blank" title="rss">RSS</a>
 </div>
 
   
+  <div class="tagcloudlist">
+    <p class="asidetitle">Tag Cloud</p>
+    <div class="tagcloudlist clearfix">
+       <a href="/tags/instrument, attach/" style="font-size: NaNpx;">instrument, attach</a>
+    </div>
+  </div>
+
 
 </aside>
 </div>
