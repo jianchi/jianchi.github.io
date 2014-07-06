@@ -80,7 +80,7 @@ A">
     </p>
   <p class="article-time">
     <time datetime="2013-02-18T14:37:04.000Z" itemprop="datePublished">2013年02月18日</time>
-    更新日期:<time datetime="2014-07-06T14:53:07.000Z" itemprop="dateModified">2014年07月06日</time>
+    更新日期:<time datetime="2014-07-06T14:58:14.000Z" itemprop="dateModified">2014年07月06日</time>
     
   </p>
 </header>
@@ -161,9 +161,11 @@ concurrentTemplate = (AbstractConcurrentTemplate) context.getBean(<span class="s
 <li><p>获取得到beanDefinition之后，判断当前bean是否满足:非abstract,isSingleton,且没有指定lazyInit,若不满足，则跳过实例化。</p>
 </li>
 <li><p>判断当前bean是否是FactoryBean,若是，则3.1，否则3.2</p>
-<p> 3.1 对于FactoryBean,现在bean前面加上&amp;号，实例化FactoryBean。若是SmartFactoryBean，且isEgerInit(),则实例化由该factoryBean生成的bean。<br> 3.2 对于普通bean，直接实例化<br>从这里可以知道：<br><code>对于singleton域的FactoryBean（非SmartFactoryBean）类型的bean，在初始化结束后只会实例化工厂bean自身。为了满足一些特殊情况，spring中提供了SmartFactoryBean接口。</code></p>
+<p> 3.1 对于FactoryBean,现在bean前面加上&amp;号，实例化FactoryBean。若是SmartFactoryBean，且isEgerInit(),则实例化由该factoryBean生成的bean。<br> 3.2 对于普通bean，直接实例化</p>
 </li>
 </ol>
+<p>从这里可以知道：<br><code>对于singleton域的FactoryBean（非SmartFactoryBean）类型的bean，在初始化结束后
+只会实例化工厂bean自身。为了满足一些特殊情况，spring中提供了SmartFactoryBean接口。</code></p>
 <p>从上面可以看到，实例化的方法的真正入口还是getBean。下一篇将会详细介绍getBean的全过程</p>
   
 	</div>
