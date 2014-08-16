@@ -77,7 +77,7 @@
     </p>
   <p class="article-time">
     <time datetime="2014-08-16T16:02:22.000Z" itemprop="datePublished">2014年08月17日</time>
-    更新日期:<time datetime="2014-08-16T16:32:07.000Z" itemprop="dateModified">2014年08月17日</time>
+    更新日期:<time datetime="2014-08-16T16:37:32.000Z" itemprop="dateModified">2014年08月17日</time>
     
   </p>
 </header>
@@ -90,7 +90,7 @@
 		</div>
 		
 		<h1 id="1_Spring事务操作接口">1 Spring事务操作接口</h1>
-<p>为了一统百花齐放的事务江湖，spring抽取了各种类型事务的共同部分，抽象成极为方便的事务操作接口。在spring的事务管理中主要涉及到下面的三个接口。<br><img src="http://tanfeng.qiniudn.com/blog/2014/08/transaction.png" alt="class" title="类图"><br>其中PlatformTransactionManager抽取了事务管理过程中的整个流程最顶层的操作接口。<br>它的定义如下：</p>
+<p>为了一统百花齐放的事务江湖，spring抽取了各种类型事务的共同部分，抽象成极为方便的事务操作接口。在spring的事务管理中主要涉及到下面的三个接口。<br><img src="http://tanfeng.qiniudn.com/blog/2014/08/transaction.png" alt="三个主要接口" title="类图"><br>其中PlatformTransactionManager抽取了事务管理过程中的整个流程最顶层的操作接口。<br>它的定义如下：</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre>1
 2
 3
@@ -104,7 +104,7 @@ TransactionStatus getTransaction(TransactionDefinition definition) <span class="
 </pre></td></tr></table></figure>
 
 <h1 id="2_主要类介绍">2 主要类介绍</h1>
-<p>spring以PlatformTransactionManager为顶层操作接口，并将各种类型的事务的共同操作逻辑封装在AbstractPlatformTransactionManager类中，AbstractPlatformTransactionManager开放了一些抽象的方法用于子类针对不同的事务资源进行处理。具体类层次结构图如下：<br><img src="http://tanfeng.qiniudn.com/blog/2014/08/20130527203816958.png" alt="alian" title="类层次结构图"><br>AbstractPlatformTransactionManager通过开放doGetTransaction(),doBegin()等方法，用于下层子类事务管理器对事务进行定制。<br>TransactionDefinition抽取了事务定义配置信息,具体创建什么样的事务，是由TransactionDefinition来决定的，具体说来包括以下几个方面的内容：</p>
+<p>spring以PlatformTransactionManager为顶层操作接口，并将各种类型的事务的共同操作逻辑封装在AbstractPlatformTransactionManager类中，AbstractPlatformTransactionManager开放了一些抽象的方法用于子类针对不同的事务资源进行处理。具体类层次结构图如下：<br><img src="http://tanfeng.qiniudn.com/blog/2014/08/20130527203816958.png" alt="主要类层次结构" title="类层次结构图"><br>AbstractPlatformTransactionManager通过开放doGetTransaction(),doBegin()等方法，用于下层子类事务管理器对事务进行定制。<br>TransactionDefinition抽取了事务定义配置信息,具体创建什么样的事务，是由TransactionDefinition来决定的，具体说来包括以下几个方面的内容：</p>
 <figure class="highlight"><table><tr><td class="gutter"><pre>1
 2
 3
@@ -115,13 +115,13 @@ TransactionStatus getTransaction(TransactionDefinition definition) <span class="
 <span class="bullet">4. </span>事务的只读性
 </pre></td></tr></table></figure>
 
-<p>按照编程式事务和声明式事务，spring将TransactionDefinition实现类分成两条分支<br><img src="http://tanfeng.qiniudn.com/blog/2014/08/20130527204013890.png" alt="" title="两条分支"><br>其中TransactionAttribute在transactionDefition的基础上增加了</p>
+<p>按照编程式事务和声明式事务，spring将TransactionDefinition实现类分成两条分支<br><img src="http://tanfeng.qiniudn.com/blog/2014/08/20130527204013890.png" alt="TransactionDefinition类" title="两条分支"><br>其中TransactionAttribute在transactionDefition的基础上增加了</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre>1
 </pre></td><td class="code"><pre><span class="keyword">boolean</span> rollbackOn(Throwable ex);
 </pre></td></tr></table></figure>
 
 <p>方法，用于aop过程中对事务中异常的处理回调。因此TransactionAttribute一支主要用于申明式事务，而DefaultTransactionDefinition只能用于编程式事务。</p>
-<p>TransactionStatus则保存了事务处理过程中事务的状态信息。保存了包括事务的savepoint，事务当前的状态（isComplete?isRollbackOnly?)<br>相对而言，TransactionStatus结构比较简单<br><img src="http://tanfeng.qiniudn.com/20130527205940057.png" alt="" title="tranctionstatus"><br>本篇主要分析spring对事务支持的一些基本概念，下一篇将从一个具体的例子出发，分析spring事务的具体实现。</p>
+<p>TransactionStatus则保存了事务处理过程中事务的状态信息。保存了包括事务的savepoint，事务当前的状态（isComplete?isRollbackOnly?)<br>相对而言，TransactionStatus结构比较简单<br><img src="http://tanfeng.qiniudn.com/20130527205940057.png" alt="TransactionStatus结构" title="tranctionstatus"><br>本篇主要分析spring对事务支持的一些基本概念，下一篇将从一个具体的例子出发，分析spring事务的具体实现。</p>
   
 	</div>
 		<footer class="article-footer clearfix">
