@@ -1,0 +1,671 @@
+
+ <!DOCTYPE HTML>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  
+    <title>jvm类加载过程分析 | 谭锋的博客</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="tanfeng">
+    
+    <meta name="description" content="为了支持跨平台的特性，java语言采用源代码编译成中间字节码，然后又各平台的jvm解释执行的方式。字节码采用了完全与平台无关的方式进行描述，java只给出了字节码格式的规范，并没有规定字节码最终来源是什么，它可以是除了java语言外的其他语言产生，只要是满足字节码规范的，都可以在jvm中很好的运行。">
+    
+    
+    
+    
+    <link rel="alternative" href="itanfeng.cn" title="谭锋的博客" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/author.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/author.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css" type="text/css">
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="谭锋的博客" title="谭锋的博客"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="谭锋的博客">谭锋的博客</a></h1>
+				<h2 class="blog-motto">A journey of a thousand miles begins with a single step.</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					<ul>
+					 
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:itanfeng.cn">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody" > 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2013/07/07/jvm-class-load-process/" title="jvm类加载过程分析" itemprop="url">jvm类加载过程分析</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="itanfeng.cn" title="tanfeng">tanfeng</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2013-07-07T04:30:18.000Z" itemprop="datePublished">2013年07月07日</time>
+    更新日期:<time datetime="2014-08-17T11:25:09.000Z" itemprop="dateModified">2014年08月17日</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#1_jvm运行时内存结构划分"><span class="toc-number">1.</span> <span class="toc-text">1 jvm运行时内存结构划分</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#2-_类加载过程"><span class="toc-number">2.</span> <span class="toc-text">2. 类加载过程</span></a></li><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#2-1_装载"><span class="toc-number">2.1.</span> <span class="toc-text">2.1 装载</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-2_连接"><span class="toc-number">2.2.</span> <span class="toc-text">2.2 连接</span></a></li><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-1_验证"><span class="toc-number">2.2.1.</span> <span class="toc-text">2.2.1 验证</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-2_准备"><span class="toc-number">2.2.2.</span> <span class="toc-text">2.2.2 准备</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-3_解析"><span class="toc-number">2.2.3.</span> <span class="toc-text">2.2.3 解析</span></a></li></ol><li class="toc-item toc-level-2"><a class="toc-link" href="#2-3_初始化"><span class="toc-number">2.3.</span> <span class="toc-text">2.3 初始化</span></a></li><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-3-1_初始化执行时机"><span class="toc-number">2.3.1.</span> <span class="toc-text">2.3.1 初始化执行时机</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-3-2_初始化过程"><span class="toc-number">2.3.2.</span> <span class="toc-text">2.3.2 初始化过程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-3-3_&lt;clinit&gt;()方法存在的条件"><span class="toc-number">2.3.3.</span> <span class="toc-text">2.3.3 &lt;clinit&gt;()方法存在的条件</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-3-4_并发性"><span class="toc-number">2.3.4.</span> <span class="toc-text">2.3.4 并发性</span></a></li></ol><li class="toc-item toc-level-2"><a class="toc-link" href="#2-4_对象在方法区和堆上的分布状态"><span class="toc-number">2.4.</span> <span class="toc-text">2.4 对象在方法区和堆上的分布状态</span></a></li></ol><li class="toc-item toc-level-1"><a class="toc-link" href="#3-_类加载器"><span class="toc-number">3.</span> <span class="toc-text">3. 类加载器</span></a></li><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#3-1_双亲委派模型"><span class="toc-number">3.1.</span> <span class="toc-text">3.1 双亲委派模型</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-2_两种主动加载方式"><span class="toc-number">3.2.</span> <span class="toc-text">3.2 两种主动加载方式</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-3_自定义类加载器的应用"><span class="toc-number">3.3.</span> <span class="toc-text">3.3 自定义类加载器的应用</span></a></li><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3-1_Tomcat中类加载器分析"><span class="toc-number">3.3.1.</span> <span class="toc-text">3.3.1 Tomcat中类加载器分析</span></a></li><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-3-1-1_问题"><span class="toc-number">3.3.1.1.</span> <span class="toc-text">3.3.1.1 问题</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-3-1-2_tomcat的目录结构"><span class="toc-number">3.3.1.2.</span> <span class="toc-text">3.3.1.2 tomcat的目录结构</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-3-1-3_tomcat自定义类加载器"><span class="toc-number">3.3.1.3.</span> <span class="toc-text">3.3.1.3 tomcat自定义类加载器</span></a></li></ol>
+		</div>
+		
+		<p>为了支持跨平台的特性，java语言采用源代码编译成中间字节码，然后又各平台的jvm解释执行的方式。字节码采用了完全与平台无关的方式进行描述，java只给出了字节码格式的规范，并没有规定字节码最终来源是什么，它可以是除了java语言外的其他语言产生，只要是满足字节码规范的，都可以在jvm中很好的运行。正因为这个特性，极大的促进了各类语言的发展，在jvm平台上出现了很多语言，如scala，groovy等<br>由于字节码来源并没有做限制，因此jvm必须在字节码正式使用之前，即在加载过程中，对字节码进行检查验证，以保证字节码的可用性和安全性。</p>
+<h1 id="1_jvm运行时内存结构划分">1 jvm运行时内存结构划分</h1>
+<p>在正式介绍之前，先看看jvm内存结构划分：<br><img src="http://tanfeng.qiniudn.com/blog/2014/08/JVMMemory.png" alt="JVM内存结构" title="JVM内存结构"><br>结合垃圾回收机制，将堆细化：<br><img src="http://tanfeng.qiniudn.com/blog/2014/08/JVMMemory2.jpg" alt="JVM运行时内存" title="JVM运行时内存"><br>在加载阶段主要用到的是方法区：<br>方法区是可供各条线程共享的运行时内存区域。存储了每一个类的结构信息，例如运行时常量池（Runtime Constant Pool）、字段和方法数据、构造函数和普通方法的字节码内容、还包括一些在类、实例、接口初始化时用到的特殊方法。<br>如果把方法的代码看作它的“静态”部分，而把一次方法调用需要记录的临时数据看做它的“动态”部分，那么每个方法的代码是只有一份的，存储于JVM的方法区中；每次某方法被调用，则在该调用所在的线程的的Java栈上新分配一个栈帧，用于存放临时数据，在方法返回时栈帧自动撤销。</p>
+<h1 id="2-_类加载过程">2. 类加载过程</h1>
+<p>jvm将类加载过程分成加载，连接，初始化三个阶段，其中连接阶段又细分为验证，准备，解析三个阶段。<br><img src="http://tanfeng.qiniudn.com/blog/2014/08/Class-loader-process.png" alt="类加载三个阶段" title="类加载三个阶段"><br>上述三个阶段总体上会保持这个顺序，但是有些特殊情况，如加载阶段与连接阶段的部分内容（一部分字节码的验证工作）是交叉进行的。再如：解析阶段可以是推迟初次访问某个类的时候，因此它可能出现在初始化阶段之后。</p>
+<h2 id="2-1_装载">2.1 装载</h2>
+<p>装载阶段主要是将java字节码以二进制的方式读入到jvm内存中，然后将二进制数据流按照字节码规范解析成jvm内部的运行时数据结构。java只对字节码进行了规范，并没有对内部运行时数据结构进行规定，不同的jvm实现可以采用不同的数据结构，这些运行时数据结构是保存在jvm的方法区中(hotspot jvm的内部数据结构定义可以参见撒迦的博文<a href="http://rednaxelafx.iteye.com/blog/730461" target="_blank">借助HotSpot SA来一窥PermGen上的对象</a>。当一个类的二进制解析完毕后，jvm最终会在堆上生成一个java.lang.Class类型的实例对象，通过这个对象可以访问到该类在方法区的内容。<br>jvm规范并没有规定从二进制字节码数据应该如何产生，事实上，jvm为了支持二进制字节码数据来源的可扩展性，它提供了一个回调接口将通过一个类的全限定名来获取描述此类的二进制字节码的动作开放到jvm的外部实现,这就是我们后面要讲到的类加载器，如果有需要，我们完全可以自定义一些类加载器，达到一些特殊应用场景。由于有了jvm的支持，二进制流的产生的方式可以是：</p>
+<blockquote>
+<p>(1) 从本地文件系统中读取<br>(2) 从网络上加载（典型应用：java Applet）<br>(3) 从jar，zip，war等压缩文件中加载<br>(4) 通过动态将java源文件动态编译产生（jsp的动态编译）<br>(5) 通过程序直接生成。</p>
+</blockquote>
+<h2 id="2-2_连接">2.2 连接</h2>
+<p>连接阶段主要是做一些加载完成之后的验证工作，和初始化之前的准备一些工作，它细分为三个阶段。</p>
+<h3 id="2-2-1_验证">2.2.1 验证</h3>
+<p>验证是连接阶段的第一步，它主要是用于保证加载的字节码符合java语言的规范，并且不会给虚拟机带来危害。比如验证这个类是不是符合字节码的格式、变量与方法是不是有重复、数据类型是不是有效、继承与实现是否合乎标准等等。按照验证的内容不同又可以细分为4个阶段：文件格式验证（这一步会与装载阶段交叉进行），元数据验证，字节码验证，符号引用验证（这个阶段的验证往往会与解析阶段交叉进行）。</p>
+<h3 id="2-2-2_准备">2.2.2 准备</h3>
+<p>准备阶段主要是为类的静态变量分配内存，并设置jvm默认的初始值。对于非静态的变量，则不会为它们分配内存。<br>在jvm中各类型的初始值如下：<br>int,byte,char,long,float,double 默认初始值为0<br>boolean 为false（在jvm内部用int表示boolean，因此初始值为0）<br>reference类型为null<br>对于final static基本类型或者String类型，则直接采用常量值（这实际上是在编译阶段就已经处理好了）。</p>
+<h3 id="2-2-3_解析">2.2.3 解析</h3>
+<p>解析过程就是查找类的常量池中的类，字段，方法，接口的符号引用，将他们替换成直接引用的过程。</p>
+<ul>
+<li>解析过程主要针对于常量池中的CONSTANT_Class_info,CONSTANT_Fieldref_info,CONSTANT_Methodref_info及CONSTANT_InterfaceMethodref_info四种常量。</li>
+<li>jvm规范并没有规定解析阶段发生的时间，只是规定了在执行anewarray,checkcast,getfield,getstatic,instanceof,<br>invokeinterface,invokespecial,invokespecial,invokestatic,invokevirtual,multinewaary,new,putfield,putstatic这13个指令应用于符号指令时，先对它们进行解析，获取它们的直接引用.</li>
+<li>jvm对于每个加载的类都会有在内部创建一个运行时常量池（参考上面图示），在解析之前是以字符串的方式将符号引用保存在运行时常量池中，在程序运行过程中当需要使用某个符号引用时，就会促发解析的过程，解析过程就是通过符号引用查找对应的类实体，然后用直接引用替换符号引用。由于符号引用已经被替换成直接引用，因此后面再次访问时，无需再次解析，直接返回直接引用。<h2 id="2-3_初始化">2.3 初始化</h2>
+初始化阶段是根据用户程序中的初始化语句为类的静态变量赋予正确的初始值。这里初始化执行逻辑最终会体现在类构造器方法&lt;clinit&gt;()方中。该方法由编译器在编译阶段生成，它封装了两部分内容:静态变量的初始化语句和静态语句块。<h3 id="2-3-1_初始化执行时机">2.3.1 初始化执行时机</h3>
+jvm规范明确规定了初始化执行条件，只要满足以下四个条件之一，就会执行初始化工作<blockquote>
+<p>(1) 通过new关键字实例化对象、读取或设置类的静态变量、调用类的静态方法(对应new,getstatic,putstatic,invokespecial这四条字节码指令）。<br>(2) 通过反射方式执行以上行为时。<br>(3) 初始化子类的时候，会触发父类的初始化。<br>(4) 作为程序入口直接运行时的主类。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="2-3-2_初始化过程">2.3.2 初始化过程</h3>
+<p>初始化过程包括两步：</p>
+<blockquote>
+<p>(1) 如果类存在直接父类，并且父类没有被初始化则对直接父类进行初始化。<br>(2) 如果类当前存在&lt;clinit&gt;()方法，则执行&lt;clinit&gt;()方法。</p>
+</blockquote>
+<p>需要注意的是接口（interface）的初始化并不要求先初始化它的父接口。（接口不能有static块）</p>
+<h3 id="2-3-3_&lt;clinit&gt;()方法存在的条件">2.3.3 &lt;clinit&gt;()方法存在的条件</h3>
+<p>并不是每个类都有&lt;clinit&gt;()方法,如下情况下不会有&lt;clinit&gt;()方法：</p>
+<ul>
+<li>类没有静态变量也没有静态语句块</li>
+<li>类中虽然定义了静态变量，但是没有给出明确的初始化语句。</li>
+<li>如果类中仅包含了final static 的静态变量的初始化语句，而且初始化语句采用编译时常量表达时，也不会有&lt;clinit&gt;()方法。</li>
+</ul>
+<p>例子：<br>代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre>1
+2
+3
+4
+5
+</pre></td><td class="code"><pre><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ConstantExample</span> {</span>
+
+    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span>   a = <span class="number">10</span>;
+    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">float</span> b = a * <span class="number">2.0</span>f;
+}
+</pre></td></tr></table></figure>
+
+<p>编译之后用 javap -verbose ConstantExample查看字节码,显示如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+</pre></td><td class="code"><pre>{
+<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> a;
+  Constant value: <span class="keyword">int</span> <span class="number">10</span>
+<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">float</span> b;
+  Constant value: <span class="keyword">float</span> <span class="number">20.0</span>f
+<span class="keyword">public</span> <span class="title">ConstantExample</span>();
+  Code:
+   Stack=<span class="number">1</span>, Locals=<span class="number">1</span>, Args_size=<span class="number">1</span>
+   <span class="number">0</span>:    aload_0
+   <span class="number">1</span>:    invokespecial	#<span class="number">15</span>; <span class="comment">//Method java/lang/Object."&lt;init&gt;":()V</span>
+   <span class="number">4</span>:	<span class="keyword">return</span>
+  LineNumberTable: 
+   line <span class="number">12</span>: <span class="number">0</span>
+
+  LocalVariableTable: 
+   Start  Length  Slot  Name   Signature
+   <span class="number">0</span>      <span class="number">5</span>      <span class="number">0</span>    <span class="keyword">this</span>       LConstantExample;
+
+}
+</pre></td></tr></table></figure>
+
+<p>这里由于编译器直接10，当作常量来处理，看到是没有<clinit>()方法存在的。可以当作常量来处理的类型包括基本类型和String类型<br>对于其他类型：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre>1
+2
+3
+4
+5
+6
+</pre></td><td class="code"><pre><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ConstantExample1</span> {</span>
+
+    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span>   a = <span class="number">10</span>;
+    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">float</span> b = a * <span class="number">2.0</span>f;
+    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> Date  c = <span class="keyword">new</span> Date();
+}
+</pre></td></tr></table></figure>
+
+<p>这里虽然c被声明成final，但是仍然会产生&lt;clinit&gt;()方法，如下所示：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+</pre></td><td class="code"><pre>{
+<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> a;
+  Constant value: <span class="keyword">int</span> <span class="number">10</span>
+<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">float</span> b;
+  Constant value: <span class="keyword">float</span> <span class="number">20.0</span>f
+<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> java.util.Date c;
+
+<span class="keyword">static</span> {};
+  Code:
+   Stack=<span class="number">2</span>, Locals=<span class="number">0</span>, Args_size=<span class="number">0</span>
+   <span class="number">0</span>:    <span class="keyword">new</span>	#<span class="number">17</span>; <span class="comment">//class java/util/Date</span>
+   <span class="number">3</span>:	dup
+   <span class="number">4</span>:	invokespecial	#<span class="number">19</span>; <span class="comment">//Method java/util/Date."&lt;init&gt;":()V</span>
+   <span class="number">7</span>:	putstatic	#<span class="number">22</span>; <span class="comment">//Field c:Ljava/util/Date;</span>
+   <span class="number">10</span>:	<span class="keyword">return</span>
+  LineNumberTable: 
+   line <span class="number">19</span>: <span class="number">0</span>
+   line <span class="number">14</span>: <span class="number">10</span>
+}
+</pre></td></tr></table></figure>
+
+<h3 id="2-3-4_并发性">2.3.4 并发性</h3>
+<p>在同一个类加载器域下，每个类只会被初始化一次，当多个线程都需要初始化同一个类，这时只允许一个线程执行初始化工作，其他线程则等待。当初始化执行完后，该线程会通知其他等待的线程。</p>
+<h2 id="2-4_对象在方法区和堆上的分布状态">2.4 对象在方法区和堆上的分布状态</h2>
+<p>在使用过程中类，对象在方法区和堆上的分布状态<br>先上代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre>1
+2
+3
+4
+5
+6
+7
+</pre></td><td class="code"><pre><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">TestThread</span> <span class="keyword">extends</span> <span class="title">Thread</span> <span class="keyword">implements</span> <span class="title">Cloneable</span> {</span>
+
+    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span>(String[] args) {
+        TestThread t = <span class="keyword">new</span> TestThread();
+        t.start();
+    }
+}
+</pre></td></tr></table></figure>
+
+<p>上面这代码中TestThread及相关类在jvm运行的存储和引用情况如下图所示：<br><img src="http://tanfeng.qiniudn.com/blog/2014/08/class-instance.jpg" alt="类的运行时存储" title="类的运行时存储"><br>其中 t 作为TestThread对象的一个引用存储在线程的栈帧空间中，Thread对象及类型数据对应的Class对象实例都存储在堆上，类型数据存储在方法区，前面讲到了，TestThread的类型数据中的符号引用在解析过程中会被替换成直接引用，因此TestThread类型数据中会直接引用到它的父类Thread及它实现的接口Cloneable的类型数据。<br>在同一个类加载器空间中，对于全限定名相同的类，只会存在唯一的一份类的实例及类型数据。实际上类的实例数据和其对应的Class对象是相互引用的。</p>
+<h1 id="3-_类加载器">3. 类加载器</h1>
+<p>上面已经讲到类加载器实际上jvm在类加载过程中的装载阶段开放给外部使用的一个回调接口，它主要实现的功能就是：将通过一个类的全限定名来获取描述此类的二进制字节码。当然类加载器的优势远不止如此，它是java安全体系的一个重要环节（java安全体系结构，后面会专门写篇文章讨论），同时通过类加载器的双亲委派原则等类加载器和class唯一性标识一个class的方式，可以给应用程序带来一些强大的功能，如hotswap。</p>
+<h2 id="3-1_双亲委派模型">3.1 双亲委派模型</h2>
+<p>在jvm中一个类实例的唯一性标识是类的全限定名和该类的加载器，类加载器相当于一个命名空间，将同名class进行了隔离。<br>从jvm的角度来说，只存在两类加载器，一类是由c++实现的启动类加载器，是jvm的一部分，一类是由java语言实现的应用程序加载器，独立在jvm之外。<br>jkd中自己定义了一些类加载器:<br><img src="http://tanfeng.qiniudn.com/blog/2014/08/classloader-class-structure.jpg" alt="类加载器结构" title="类加载器结构"></p>
+<ul>
+<li>BootStrap ClassLoader：启动类加载器，由C++代码实现，负责加载存放在%JAVA_HOME%\lib目录中的，或者通被-Xbootclasspath参数所指定的路径中的，并且被java虚拟机识别的(仅按照文件名识别，如rt.jar，名字不符合的类库，即使放在指定路径中也不会被加载)类库到虚拟机的内存中，启动类加载器无法被java程序直接引用。</li>
+<li>Extension ClassLoader：扩展类加载器，由sun.misc.Launcher$ExtClassLoader实现，负责加载%JAVA_HOME%\lib\ext目录中的，或者被java.ext.dirs系统变量所指定的路径中的所有类库，开发者可以直接使用扩展类加载器。</li>
+<li>Application ClassLoader：应用程序类加载器，由sun.misc.Launcher$AppClassLoader实现，负责加载用户类路径classpath上所指定的类库，是类加载器ClassLoader中的getSystemClassLoader()方法的返回值，开发者可以直接使用应用程序类加载器，如果程序中没有自定义过类加载器，该加载器就是程序中默认的类加载器。<br>参考ClassLoader源代码会发现，这些Class之间并不是采用继承的方式实现父子关系，而是采用组合方式。<br>正常情况下，每个类加载在收到类加载请求时，会先调用父加载器进行加载，若父加载器加载失败，则子加载器进行加载。<h2 id="3-2_两种主动加载方式">3.2 两种主动加载方式</h2>
+在java中有两种办法可以在应用程序中主动加载类:<br>一种是Class类的forName静态方法</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre>1
+2
+3
+4
+</pre></td><td class="code"><pre><span class="keyword">public</span> <span class="keyword">static</span> Class&lt;?&gt; <span class="title">forName</span>(String className) 
+                <span class="keyword">throws</span> ClassNotFoundException 
+//允许指定是否初始化，并且指定类的类加载器
+<span class="keyword">public</span> <span class="keyword">static</span> Class&lt;?&gt; <span class="title">forName</span>(String name, <span class="keyword">boolean</span> initialize, ClassLoader loader) <span class="keyword">throws</span> ClassNotFoundException
+</pre></td></tr></table></figure>
+
+<p>另一种就是ClassLoader中的loadClass方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre>1
+2
+3
+4
+</pre></td><td class="code"><pre> <span class="keyword">protected</span> <span class="keyword">synchronized</span> Class&lt;?&gt; <span class="title">loadClass</span>(String name, <span class="keyword">boolean</span> resolve) //第二个参数表示是否在转载完后进行连接（解析）
+    <span class="keyword">throws</span> ClassNotFoundException
+
+<span class="keyword">public</span> Class&lt;?&gt; <span class="title">loadClass</span>(String name) <span class="keyword">throws</span> ClassNotFoundException
+</pre></td></tr></table></figure>
+
+<p>上面这两种方式是有区别的，如下例所示</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+</pre></td><td class="code"><pre><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">InitialClass</span> {</span>
+
+    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span> i;
+    <span class="keyword">static</span> {
+        i = <span class="number">1000</span>;
+        System.out.println(<span class="string">"InitialClass is init"</span>);
+    }
+
+}
+
+<span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">InitClassTest</span> {</span>
+
+    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span>(String[] args) <span class="keyword">throws</span> MalformedURLException, ClassNotFoundException {
+        Class classFromForName = Class.forName(<span class="string">"com.alibaba.china.jianchi.example.InitialClass"</span>,
+                                    <span class="keyword">true</span>,
+                                    <span class="keyword">new</span> URLClassLoader(
+                                        <span class="keyword">new</span> URL[] { <span class="keyword">new</span> URL(<span class="string">"file:/home/tanfeng/workspace/springStudy/bin/"</span>) },
+                                        InitClassTest.class.getClassLoader()));
+
+        Class classFromClassLoader = (<span class="keyword">new</span> URLClassLoader(
+                                        <span class="keyword">new</span> URL[] { <span class="keyword">new</span> URL( <span class="string">"file:/home/tanfeng/workspace/springStudy/bin/"</span>) },
+                                        InitClassTest.class.getClassLoader()))
+                                            .loadClass(<span class="string">"com.alibaba.china.jianchi.example.InitialClass"</span>);
+
+    }
+}
+</pre></td></tr></table></figure>
+
+<p>通过运行可以考到用Class.forName()方法会将装载的类初始化，而ClassLoader.loadClass()方法则不会。<br>我们经常会看到在数据库操作时，会用Class.forName()的方式加载驱动类，而不是ClassLoader.loadClass()方法，为何要这样呢？<br>来看看mysql的驱动类实现，可以看到在类的初始化阶段，它会将自己注册到驱动管理器中（static块）。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+</pre></td><td class="code"><pre><span class="keyword">package</span> com.mysql.jdbc;
+<span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Driver</span> <span class="keyword">extends</span> <span class="title">NonRegisteringDriver</span> <span class="keyword">implements</span> <span class="title">java</span>.<span class="title">sql</span>.<span class="title">Driver</span> {</span>
+
+    <span class="keyword">static</span> {
+		<span class="keyword">try</span> {
+			java.sql.DriverManager.registerDriver(<span class="keyword">new</span> Driver());
+		} <span class="keyword">catch</span> (SQLException E) {
+			<span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">"Can't register driver!"</span>);
+		}
+	}
+      ... ...
+}
+</pre></td></tr></table></figure>
+
+<h2 id="3-3_自定义类加载器的应用">3.3 自定义类加载器的应用</h2>
+<h3 id="3-3-1_Tomcat中类加载器分析">3.3.1 Tomcat中类加载器分析</h3>
+<h4 id="3-3-1-1_问题">3.3.1.1 问题</h4>
+<p>tomcat中通过自定义一组类加载器，解决了以下几个问题：</p>
+<ul>
+<li>部署在一个服务器上的两个Web应用程序自身所使用的Java类库是相互隔离的。</li>
+<li>部署在一个服务器上的两个Web应用程序可以共享服务器提供的java共用类库。</li>
+<li>服务器尽可能的保证自身安全不受部署的Web应用程序影响。</li>
+<li>支持对JSP的HotSwap功能。</li>
+</ul>
+<h4 id="3-3-1-2_tomcat的目录结构">3.3.1.2 tomcat的目录结构</h4>
+<p>tomcat主要根据根据java类库的共享范围，分为4组目录：</p>
+<ul>
+<li>common目录：能被Tomcat和所有Web应用程序共享。</li>
+<li>server目录：仅能被Tomcat使用，其他Web应用程序不可见。</li>
+<li>Shared目录：可以被所有Web应用程序共享，对Tomcat不可见。</li>
+<li>WEB-INF目录：只能被当前Web应用程序使用，对其他web应用程序不可见。</li>
+</ul>
+<h4 id="3-3-1-3_tomcat自定义类加载器">3.3.1.3 tomcat自定义类加载器</h4>
+<p><img src="http://tanfeng.qiniudn.com/blog/2014/08/tomcat-class-loader.png" alt="tomcat类加载器结构" title="tomcat类加载器结构"><br>这几个类加载器分别对应加载/common/<em>、/server/</em>、/shared/<em>和 /WEB-INF/</em>类库， 其中Webapp类加载器和Jsp类加载器会存在多个，每个Web应用对应一个Webapp类加载器。<br>CommonClassLoader加载的类可以被CatalinaClassLoader和ShareClassLoader使用；CatalinaClassLoader加载的类和ShareClassLoader加载的类相互隔离； WebappClassLoader可以使用ShareClassLoader加载的类，但各个WebappClassLoader间相互隔离；JspClassLoader仅能用JSP文件编译的class文件。</p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/JVM/">JVM</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/编程语言/">编程语言</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="itanfeng.cn/2013/07/07/jvm-class-load-process/" data-title="jvm类加载过程分析 | 谭锋的博客" data-tsina="null" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2014/07/07/spring-bean-initialized-2/" title="Spring源码之Bean实例化过程2">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  Spring源码之Bean实例化过程2</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2013/02/18/spring-bean-initialized-1/"  title="Spring源码之Bean实例化过程(1)">
+ <strong>NEXT:</strong><br/> 
+ <span>Spring源码之Bean实例化过程(1)
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section class="comment">
+	<div class="ds-thread"></div>
+</section>
+
+</div>  
+
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#1_jvm运行时内存结构划分"><span class="toc-number">1.</span> <span class="toc-text">1 jvm运行时内存结构划分</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#2-_类加载过程"><span class="toc-number">2.</span> <span class="toc-text">2. 类加载过程</span></a></li><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#2-1_装载"><span class="toc-number">2.1.</span> <span class="toc-text">2.1 装载</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-2_连接"><span class="toc-number">2.2.</span> <span class="toc-text">2.2 连接</span></a></li><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-1_验证"><span class="toc-number">2.2.1.</span> <span class="toc-text">2.2.1 验证</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-2_准备"><span class="toc-number">2.2.2.</span> <span class="toc-text">2.2.2 准备</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-3_解析"><span class="toc-number">2.2.3.</span> <span class="toc-text">2.2.3 解析</span></a></li></ol><li class="toc-item toc-level-2"><a class="toc-link" href="#2-3_初始化"><span class="toc-number">2.3.</span> <span class="toc-text">2.3 初始化</span></a></li><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-3-1_初始化执行时机"><span class="toc-number">2.3.1.</span> <span class="toc-text">2.3.1 初始化执行时机</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-3-2_初始化过程"><span class="toc-number">2.3.2.</span> <span class="toc-text">2.3.2 初始化过程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-3-3_&lt;clinit&gt;()方法存在的条件"><span class="toc-number">2.3.3.</span> <span class="toc-text">2.3.3 &lt;clinit&gt;()方法存在的条件</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-3-4_并发性"><span class="toc-number">2.3.4.</span> <span class="toc-text">2.3.4 并发性</span></a></li></ol><li class="toc-item toc-level-2"><a class="toc-link" href="#2-4_对象在方法区和堆上的分布状态"><span class="toc-number">2.4.</span> <span class="toc-text">2.4 对象在方法区和堆上的分布状态</span></a></li></ol><li class="toc-item toc-level-1"><a class="toc-link" href="#3-_类加载器"><span class="toc-number">3.</span> <span class="toc-text">3. 类加载器</span></a></li><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#3-1_双亲委派模型"><span class="toc-number">3.1.</span> <span class="toc-text">3.1 双亲委派模型</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-2_两种主动加载方式"><span class="toc-number">3.2.</span> <span class="toc-text">3.2 两种主动加载方式</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-3_自定义类加载器的应用"><span class="toc-number">3.3.</span> <span class="toc-text">3.3 自定义类加载器的应用</span></a></li><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3-1_Tomcat中类加载器分析"><span class="toc-number">3.3.1.</span> <span class="toc-text">3.3.1 Tomcat中类加载器分析</span></a></li><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-3-1-1_问题"><span class="toc-number">3.3.1.1.</span> <span class="toc-text">3.3.1.1 问题</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-3-1-2_tomcat的目录结构"><span class="toc-number">3.3.1.2.</span> <span class="toc-text">3.3.1.2 tomcat的目录结构</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-3-1-3_tomcat自定义类加载器"><span class="toc-number">3.3.1.3.</span> <span class="toc-text">3.3.1.3 tomcat自定义类加载器</span></a></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="tagslist">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/JAVA/" title="JAVA">JAVA<sup>3</sup></a></li>
+		
+			<li><a href="/tags/JVM/" title="JVM">JVM<sup>2</sup></a></li>
+		
+			<li><a href="/tags/Spring/" title="Spring">Spring<sup>5</sup></a></li>
+		
+			<li><a href="/tags/并发/" title="并发">并发<sup>2</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/开源框架/" title="开源框架">开源框架<sup>5</sup></a></li>
+		
+			<li><a href="/categories/编程语言/" title="编程语言">编程语言<sup>4</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+  <div class="archiveslist">
+    <p class="asidetitle"><a href="/archives">归档</a></p>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/08">八月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/07">七月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02">二月 2013</a><span class="archive-list-count">5</span></li></ul>
+  </div>
+
+
+  <div class="rsspart">
+	<a href="itanfeng.cn" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	
+	<div class="social-font" class="clearfix">
+		
+		<a href="http://weibo.com/2939434270" target="_blank" title="weibo"></a>
+		
+		
+		
+		
+	</div>
+		<p class="copyright">Powered by <a href="http://zespia.tw/hexo/" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/A-limon/pacman" target="_blank" title="Pacman">Pacman</a> © 2014 
+		
+		<a href="itanfeng.cn" target="_blank" title="tanfeng">tanfeng</a>
+		
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+<script type="text/javascript">
+  var duoshuoQuery = {short_name:"jianchiblog"};
+  (function() {
+    var ds = document.createElement('script');
+    ds.type = 'text/javascript';ds.async = true;
+    ds.src = '//static.duoshuo.com/embed.js';
+    ds.charset = 'UTF-8';
+    (document.getElementsByTagName('head')[0] 
+    || document.getElementsByTagName('body')[0]).appendChild(ds);
+  })();
+</script> 
+
+
+
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.article-content').each(function(i){
+    $(this).find('img').each(function(){
+      if ($(this).parent().hasClass('fancybox')) return;
+      var alt = this.alt;
+      if (alt) $(this).after('<span class="caption">' + alt + '</span>');
+      $(this).wrap('<a href="' + this.src + '" title="' + alt + '" class="fancybox"></a>');
+    });
+    $(this).find('.fancybox').each(function(){
+      $(this).attr('rel', 'article' + i);
+    });
+  });
+  if($.fancybox){
+    $('.fancybox').fancybox();
+  }
+}); 
+</script>
+
+
+
+  </body>
+</html>
