@@ -76,7 +76,7 @@
     </p>
   <p class="article-time">
     <time datetime="2013-07-07T04:30:18.000Z" itemprop="datePublished">2013年07月07日</time>
-    更新日期:<time datetime="2014-08-17T11:25:09.000Z" itemprop="dateModified">2014年08月17日</time>
+    更新日期:<time datetime="2014-08-17T11:29:04.000Z" itemprop="dateModified">2014年08月17日</time>
     
   </p>
 </header>
@@ -267,9 +267,11 @@ jvm规范明确规定了初始化执行条件，只要满足以下四个条件�
 <ul>
 <li>BootStrap ClassLoader：启动类加载器，由C++代码实现，负责加载存放在%JAVA_HOME%\lib目录中的，或者通被-Xbootclasspath参数所指定的路径中的，并且被java虚拟机识别的(仅按照文件名识别，如rt.jar，名字不符合的类库，即使放在指定路径中也不会被加载)类库到虚拟机的内存中，启动类加载器无法被java程序直接引用。</li>
 <li>Extension ClassLoader：扩展类加载器，由sun.misc.Launcher$ExtClassLoader实现，负责加载%JAVA_HOME%\lib\ext目录中的，或者被java.ext.dirs系统变量所指定的路径中的所有类库，开发者可以直接使用扩展类加载器。</li>
-<li>Application ClassLoader：应用程序类加载器，由sun.misc.Launcher$AppClassLoader实现，负责加载用户类路径classpath上所指定的类库，是类加载器ClassLoader中的getSystemClassLoader()方法的返回值，开发者可以直接使用应用程序类加载器，如果程序中没有自定义过类加载器，该加载器就是程序中默认的类加载器。<br>参考ClassLoader源代码会发现，这些Class之间并不是采用继承的方式实现父子关系，而是采用组合方式。<br>正常情况下，每个类加载在收到类加载请求时，会先调用父加载器进行加载，若父加载器加载失败，则子加载器进行加载。<h2 id="3-2_两种主动加载方式">3.2 两种主动加载方式</h2>
-在java中有两种办法可以在应用程序中主动加载类:<br>一种是Class类的forName静态方法</li>
+<li>Application ClassLoader：应用程序类加载器，由sun.misc.Launcher$AppClassLoader实现，负责加载用户类路径classpath上所指定的类库，是类加载器ClassLoader中的getSystemClassLoader()方法的返回值，开发者可以直接使用应用程序类加载器，如果程序中没有自定义过类加载器，该加载器就是程序中默认的类加载器。</li>
 </ul>
+<p>参考ClassLoader源代码会发现，这些Class之间并不是采用继承的方式实现父子关系，而是采用组合方式。<br>正常情况下，每个类加载在收到类加载请求时，会先调用父加载器进行加载，若父加载器加载失败，则子加载器进行加载。</p>
+<h2 id="3-2_两种主动加载方式">3.2 两种主动加载方式</h2>
+<p>在java中有两种办法可以在应用程序中主动加载类:<br>一种是Class类的forName静态方法</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre>1
 2
 3
